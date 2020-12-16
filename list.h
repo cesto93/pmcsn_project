@@ -9,4 +9,6 @@ struct node_t {
 void add_ordered(struct node_t **pnext, double val);
 void remove_next(struct node_t **pnext);
 
+void error_msg(char *msg);
+
 #endif

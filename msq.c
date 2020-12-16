@@ -1,32 +1,49 @@
 #include <stdio.h>
 #include <math.h>
-#include "rngs.h"		/* the multi-stream generator */
-#include "list.h"		//ordered list
+#include "rngs.h"
+#include "list.h"
 
-#define START         0.0	/* initial time                   */
-#define STOP      20000.0	/* terminal (close the door) time */
-#define INFINITE   (100.0 * STOP)	/* must be much larger than STOP  */
+#define START         0.0	// initial time
+#define STOP      30000.0	// terminal (close the door) time
+#define INFINITE   (100.0 * STOP)	// must be much larger than STOP
+
+#define INPUT "./param.csv"
+
+#define MIN(a,b, res) 	\
+	do {				\
+		if (a < b)		\
+			res = a;	\
+		else			\
+			res = b;	\
+	} while(0)
+	
+struct sim_param {
+	int m;
+	double lambda;
+	double mu;
+	int seed;
+};
+
+struct sim_result {
+	long njobs;
+	double interarr_time;
+	double avg_ts;
+	double avg_tq;
+	double service_time;
+	double avg_nnode;
+	double avg_nqueue;
+	double util;
+};
 
 double Exponential(double m)
 {
 	return (-m * log(1.0 - Random()));
 }
 
-double Min(double a, double c)
+double GetArrival(double lambda, double instant)
 {
-	if (a < c)
-		return a;
-	else
-		return c;
-}
-
-double GetArrival(double lambda)
-{
-	static double arrival = START;
-
 	SelectStream(0);
-	arrival += Exponential(1.0 / lambda);
-	return (arrival);
+	return instant + Exponential(1.0 / lambda);
 }
 
 double GetService(double mu)
@@ -35,13 +52,13 @@ double GetService(double mu)
 	return Exponential(1.0 / mu);
 }
 
-void simulation(int servers, double lambda, double mu)
+#define SIMULATION(param)	simulation(param.m, param.lambda, param.mu, param.seed)
+
+struct sim_result simulation(int servers, double lambda, double mu, int seed)
 {
-	struct {
-		double node;	/* time integrated number in the node  */
-		double queue;	/* time integrated number in the queue */
-		double service;	/* time integrated number in service   */
-	} area = { 0.0, 0.0, 0.0 };
+	double node = 0.0;	/* time integrated number in the node  */
+	double queue = 0.0;	/* time integrated number in the queue */
+	double service = 0.0;	/* time integrated number in service   */
 
 	long index = 0;		/* used to count departed jobs         */
 	long nnode = 0;		/* number in the node                  */
@@ -55,20 +72,18 @@ void simulation(int servers, double lambda, double mu)
 
 	struct node_t *residual_list = NULL;
 
-	PlantSeeds(123456789);
+	PlantSeeds(seed);
 	current = START;	/* set the clock                         */
 	last = START;
-	arrival = GetArrival(lambda);	/* schedule the first arrival */
+	arrival = GetArrival(lambda, current);	/* schedule the first arrival */
 	completion = INFINITE;	/* the first event can't be a completion */
 	
 	while (arrival < STOP) {
-		//printf("arrival %f\n", arrival);
-		//printf("completion %f\n", completion);
-		next = Min(arrival, completion);	/* next event time   */
+		MIN(arrival, completion, next);	/* next event time   */
 		if (nnode > 0) {	/* update integrals  */
-			area.node += (next - current) * nnode;
-			area.queue += (next - current) * (nnode - nservice);
-			area.service += (next - current) * nservice;
+			node += (next - current) * nnode;
+			queue += (next - current) * (nnode - nservice);
+			service += (next - current) * nservice;
 		}
 		current = next;	/* advance the clock */
 
@@ -80,7 +95,7 @@ void simulation(int servers, double lambda, double mu)
 				completion = residual_list->val;
 				//printf("val %f\n", residual_list->val);
 			}
-			arrival = GetArrival(lambda);
+			arrival = GetArrival(lambda, current);
 			if (arrival > STOP) {
 				last = current;
 				arrival = INFINITE;
@@ -102,19 +117,61 @@ void simulation(int servers, double lambda, double mu)
 				completion = INFINITE;
 		}
 	}
+	struct sim_result res = {
+		.njobs = index,
+		.interarr_time = last / index,
+		.avg_ts = node / index,
+		.avg_tq = queue / index,
+		.service_time = service / index,
+		.avg_nnode = node / current,
+		.avg_nqueue = queue / current,
+		.util = service / (current * servers)
+	};
+	return res;
+}
 
-	printf("\nfor %ld jobs\n", index);
-	printf(" average interarrival time = %6.6f\n", last / index);
-	printf(" average wait ............ = %6.6f\n", area.node / index);
-	printf(" average delay ........... = %6.6f\n", area.queue / index);
-	printf(" average service time .... = %6.6f\n", area.service / index);
-	printf(" average # in the node ... = %6.6f\n", area.node / current);
-	printf(" average # in the queue .. = %6.6f\n", area.queue / current);
-	printf(" utilization ............. = %6.6f\n", area.service / (current * servers));
+void printRes(struct sim_result res) 
+{
+	printf("\nfor %ld jobs\n", res.njobs);
+	printf(" average interarrival time = %6.6f\n", res.interarr_time);
+	printf(" average ts ............ = %6.6f\n", res.avg_ts);
+	printf(" average tq ........... = %6.6f\n", res.avg_tq);
+	printf(" average service time .... = %6.6f\n", res.service_time);
+	printf(" average # in the node ... = %6.6f\n", res.avg_nnode);
+	printf(" average # in the queue .. = %6.6f\n", res.avg_nqueue);
+	printf(" utilization ............. = %6.6f\n", res.util);
+}
+
+void printCSV(struct sim_param param, struct sim_result res) 
+{
+	printf("%d \t %.6f \t %.6f \t %d \t %.6f \t %.6f \t %.6f\n", 
+			param.m, param.lambda, param.mu, param.seed, res.avg_ts, res.avg_tq, res.util);
+}
+
+int readCSV(FILE *file, struct sim_param * param) 
+{
+	if (fscanf(file, "%d,%lf,%lf,%d", &(param->m), &(param->lambda), &(param->mu), &(param->seed)) == -1) {
+		return 1;
+	}
+	return 0;
 }
 
 int main(void)
 {
-	simulation(2, 100.0, 200.0);
+	struct sim_param param;
+	FILE * file = fopen(INPUT, "r");
+	
+	if (file == NULL) {
+		error_msg("errore in fopen");
+		return 0;
+	}
+	if (fscanf(file, "%*[^\n]\n") == -1) 
+		error_msg("errore in readCSV");
+	
+	printf("m \t lambda \t mu \t seed \t E(ts) \t E(tq) \t util\n");
+	while (!readCSV(file, &param)) {
+		printCSV(param, SIMULATION(param));
+	}
+	
 	return 0;
 }

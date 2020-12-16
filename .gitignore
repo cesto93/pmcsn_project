@@ -1,2 +1,6 @@
 #ignore object file
 *.o
+
+#csv file
+prova.csv
+param.csv
