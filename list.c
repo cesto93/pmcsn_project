@@ -1,12 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "list.h"
-
-void error_msg(char *msg)
-{
-	perror(msg);
-	exit(EXIT_FAILURE);
-}
+#include "utils.h"
 
 struct node_t *create_node(double val)
 {
