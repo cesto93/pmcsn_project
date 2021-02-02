@@ -1,7 +1,17 @@
 #include <stdio.h>
 #include <stdlib.h>
-
+#include <math.h>
 #include "utils.h"
+
+const double student_20[] = {1.72472,	2.08596,	2.52798,	2.84534,	3.55181,	3.84952};
+const double student_10[] = {1.812,		2.228,		2.764,		3.169,		4.144,		4.587};
+
+#define confidenza_90 0
+#define confidenza_95 1
+#define confidenza_98 2
+#define confidenza_99 3
+#define confidenza_998 4
+#define confidenza_999 5
 
 struct sim_result_exported {
 	int m;
@@ -53,26 +63,47 @@ void stat(double val[], int size, double *mean, double *var)
 	*var = sum / n;
 }
 
+double confidence_delta(int confidence, double sample_stdev) {
+	const int n = 20;
+	return student_20[confidence] * sample_stdev / (n - 1);
+}
+
 void print_stat(const char *path)
 {
 	double ts_mean, ts_var, tq_mean, tq_var, util_mean, util_var;
+	double ts_delta, tq_delta, util_delta;
+	
 	struct sim_result_exported sample;
 	sample.avg_tq = NULL;
 	sample.avg_ts = NULL;
 	sample.util = NULL;
 	FILE * sample_file = fopen(path, "r");
+	
+	if (sample_file == NULL)
+		error_msg("error in fopen\n");
+	
 	int n = readCSV_res(sample_file, &sample);
 	
 	stat(sample.avg_ts, n, &ts_mean, &ts_var);
 	stat(sample.avg_tq, n, &tq_mean, &tq_var);
 	stat(sample.util, n, &util_mean, &util_var);
+	ts_delta = confidence_delta(confidenza_98, sqrt(ts_var));
+	tq_delta = confidence_delta(confidenza_98, sqrt(tq_var));
+	util_delta = confidence_delta(confidenza_98, sqrt(util_var));
 	
-	printf("util: mean %.9lf var %.9lf\n", util_mean, util_var);
-	printf("ts: mean %.9lf var %.9lf\n", ts_mean, ts_var);
-	printf("tq: mean %.9lf var %.9lf\n", tq_mean, tq_var);
+	printf("%s\n", path);
+	
+	printf("util:\t %.9lf, %.9lf\n", util_mean - util_delta, util_mean + util_delta);
+	printf("tq:\t %.9lf, %.9lf\n", tq_mean - tq_delta, tq_mean + tq_delta);
+	printf("ts:\t %.9lf, %.9lf\n", ts_mean - ts_delta, ts_mean + ts_delta);
+
 }
 
 int main() 
 {
-	print_stat("http08_12.csv");
+	print_stat("./output/http08_12.csv");
+	print_stat("./output/http12_15.csv");
+	print_stat("./output/http15_20.csv");
+	print_stat("./output/http20_24.csv");
+	print_stat("./output/http24_08.csv");
 }

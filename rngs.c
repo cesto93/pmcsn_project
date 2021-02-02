@@ -26,6 +26,7 @@
 
 #include <stdio.h>
 #include <time.h>
+#include <math.h>
 #include "rngs.h"
 
 #define MODULUS    2147483647	/* DON'T CHANGE THIS VALUE                  */
@@ -40,8 +41,8 @@ static unsigned long seed[STREAMS] = { DEFAULT };	/* current state of each strea
 static int stream = 0;		/* stream index, 0 is the default */
 static int initialized = 0;	/* test for stream initialization */
 
-// returns a pseudo-random real number uniformly distributed between 0.0 and 1.0. 
-double Random(void)
+
+double Random() // returns a pseudo-random real number uniformly distributed between 0.0 and 1.0
 {
 	const long Q = MODULUS / MULTIPLIER;
 	const long R = MODULUS % MULTIPLIER;
@@ -55,49 +56,45 @@ double Random(void)
 	return ((double)seed[stream] / MODULUS);
 }
 
-/* Set the state of all streams by "planting" a sequence of seeds with all states dictated by the state of the default stream. 
- * The sequence of planted states is separated one from the next by 8,367,782 calls to Random()
- */
+/* 	Set the state of all streams by "planting" a sequence of seeds with all states dictated by the state of the default stream. 
+	The sequence of planted states is separated one from the next by 8,367,782 calls to Random() */
 void PlantSeeds(unsigned long x)
 {
 	const long Q = MODULUS / A256;
 	const long R = MODULUS % A256;
-	int j;
+	long t = x % MODULUS;
 
 	initialized = 1;
-	seed[0] = x;		/* set seed[0]                 */
-	for (j = 1; j < STREAMS; j++) {
-		x = A256 * (seed[j - 1] % Q) - R * (seed[j - 1] / Q);
-		if (x > 0)
-			seed[j] = x;
+	seed[0] = t;                            /* set seed[0]                 */
+	for (int j = 1; j < STREAMS; j++) {
+		t = A256 * (seed[j - 1] % Q) - R * (seed[j - 1] / Q);
+		if (t > 0)
+			seed[j] = t;
 		else
-			seed[j] = x + MODULUS;
+			seed[j] = t + MODULUS;
 	}
 }
 
-// Use this function to set the state of the current random number 
-void PutSeed(unsigned long x)
+void PutSeed(unsigned long x) // Use this function to set the state of the current random number
 {
 	x = x % MODULUS;	/* correct if x is too large  */
 	seed[stream] = x;
 }
-
-// get the state of the current random number generator stream.                                                   
-void GetSeed(unsigned long *x)
+                                      
+void GetSeed(unsigned long *x) // get the state of the current random number generator stream.
 {
 	*x = seed[stream];
 }
-
-// set the current random number generator stream 
-void SelectStream(int index)
+ 
+void SelectStream(unsigned int index) // set the current random number generator stream
 {
-	stream = ((unsigned int)index) % STREAMS;
-	if ((initialized == 0) && (stream != 0))	/* protect against        */
-		PlantSeeds(DEFAULT);	/* un-initialized streams */
+	stream = index % STREAMS;
+	/* protect against un-initialized streams */
+	/*if ((initialized == 0) && (stream != 0))
+		PlantSeeds(DEFAULT);*/
 }
 
-// Use this (optional) function to test for a correct implementation
-void TestRandom(void)
+void TestRandom() // Use this (optional) function to test for a correct implementation
 {
 	unsigned long i;
 	unsigned long x;
@@ -122,4 +119,9 @@ void TestRandom(void)
 	else
 		printf
 		    ("\n\a ERROR -- the implementation of rngs.c is not correct.\n\n");
+}
+
+double Exponential(double m)
+{
+	return (-m * log(1.0 - Random()));
 }

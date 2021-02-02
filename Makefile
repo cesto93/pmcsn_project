@@ -1,4 +1,7 @@
-objects := rngs.c list.c
+objects := rngs.c list.c utils.c
 install: 
-	gcc -Wall -Wextra msq.c -O2 -o msq.o $(objects) -lm
-	gcc -Wall -Wextra stat.c -O2 -o stat.o 
+	gcc -Wall -Wextra msq.c -O3 -o msq.o $(objects) -lm
+	gcc -Wall -Wextra stat.c -O3 -o stat.o utils.c -lm
+	
+prof: 
+	gcc -Wall -Wextra -pg msq.c -O3 -o msq.o $(objects) -lm

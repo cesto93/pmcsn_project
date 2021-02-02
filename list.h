@@ -7,6 +7,9 @@ struct node_t {
 };
 
 void add_ordered(struct node_t **pnext, double val);
+void add_last(struct node_t **pnext, double val);
 void remove_next(struct node_t **pnext);
+
+#define for_each(pos, head) for ((pos) = (head); (pos) != NULL; (pos) = (pos)->next)
 
 #endif

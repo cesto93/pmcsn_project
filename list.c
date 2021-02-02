@@ -27,9 +27,18 @@ void remove_next(struct node_t **pnext)
 	*pnext = p;
 }
 
+void add_last(struct node_t **pnext, double val) 
+{
+	struct node_t *p;
+	struct node_t *new = create_node(val);
+
+	for (p = *pnext; p != NULL; pnext = &(p->next), p = p->next);
+
+	add_next(new, pnext); // l'elemento va inserito in fondo alla lista
+}
+
 void add_ordered(struct node_t **pnext, double val)
 {
-
 	struct node_t *p;
 	struct node_t *new = create_node(val);
 
@@ -41,6 +50,5 @@ void add_ordered(struct node_t **pnext, double val)
 		}
 	}
 
-	/* l'elemento va inserito in fondo alla lista */
-	add_next(new, pnext);
+	add_next(new, pnext); // l'elemento va inserito in fondo alla lista
 }

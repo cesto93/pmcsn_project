@@ -10,10 +10,11 @@
 #define RNGS_H
 
 double Random(void);
-void   PlantSeeds(unsigned long x);
-void   GetSeed(unsigned long *x);
-void   PutSeed(unsigned long x);
-void   SelectStream(int index);
-void   TestRandom(void);
+void PlantSeeds(unsigned long x);
+void GetSeed(unsigned long *x);
+void PutSeed(unsigned long x);
+void SelectStream(unsigned int index);
+void TestRandom(void);
+double Exponential(double m);
 
 #endif

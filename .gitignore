@@ -4,3 +4,8 @@
 #csv file
 prova.csv
 param.csv
+paramsb_np.csv
+seed.csv
+
+#profiling
+gmon.out
