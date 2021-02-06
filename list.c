@@ -3,12 +3,13 @@
 #include "list.h"
 #include "utils.h"
 
-struct node_t *create_node(double val)
+struct node_t *create_node_prio(double val, int priority)
 {
 	struct node_t *n = malloc(sizeof(struct node_t));
 	if (n == NULL)
 		error_msg("errore malloc");
 	n->val = val;
+	n->priority = priority;
 	n->next = NULL;
 	return n;
 }
@@ -27,20 +28,20 @@ void remove_next(struct node_t **pnext)
 	*pnext = p;
 }
 
-void add_last(struct node_t **pnext, double val) 
+void add_last_prio(struct node_t **pnext, double val, int priority) 
 {
 	struct node_t *p;
-	struct node_t *new = create_node(val);
+	struct node_t *new = create_node_prio(val, priority);
 
 	for (p = *pnext; p != NULL; pnext = &(p->next), p = p->next);
 
 	add_next(new, pnext); // l'elemento va inserito in fondo alla lista
 }
 
-void add_ordered(struct node_t **pnext, double val)
+void add_ordered_prio(struct node_t **pnext, double val, int priority)
 {
 	struct node_t *p;
-	struct node_t *new = create_node(val);
+	struct node_t *new = create_node_prio(val, priority);
 
 	for (p = *pnext; p != NULL; pnext = &(p->next), p = p->next) {
 		if (p->val > new->val) {

@@ -56,8 +56,8 @@ double Random() // returns a pseudo-random real number uniformly distributed bet
 	return ((double)seed[stream] / MODULUS);
 }
 
-/* 	Set the state of all streams by "planting" a sequence of seeds with all states dictated by the state of the default stream. 
-	The sequence of planted states is separated one from the next by 8,367,782 calls to Random() */
+/* Set the state of all streams by "planting" a sequence of seeds with all states dictated by the state of the default stream. 
+ * The sequence of planted states is separated one from the next by 8,367,782 calls to Random() */
 void PlantSeeds(unsigned long x)
 {
 	const long Q = MODULUS / A256;
@@ -121,7 +121,22 @@ void TestRandom() // Use this (optional) function to test for a correct implemen
 		    ("\n\a ERROR -- the implementation of rngs.c is not correct.\n\n");
 }
 
+/* =========================================================
+ * Returns an exponentially distributed positive real number. 
+ * NOTE: use m > 0.0
+ * =========================================================
+ */
 double Exponential(double m)
 {
 	return (-m * log(1.0 - Random()));
+}
+
+/* ========================================================
+ * Returns 1 with probability p or 0 with probability 1 - p. 
+ * NOTE: use 0.0 < p < 1.0                                   
+ * ========================================================
+ */
+long Bernoulli(double p) 
+{
+	return ((Random() < (1.0 - p)) ? 0 : 1);
 }

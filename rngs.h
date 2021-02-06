@@ -16,5 +16,6 @@ void PutSeed(unsigned long x);
 void SelectStream(unsigned int index);
 void TestRandom(void);
 double Exponential(double m);
+long Bernoulli(double p);
 
 #endif
