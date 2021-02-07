@@ -40,16 +40,17 @@ struct sim_prio_data {
 	double *sd2;
 };
 #define printCSV_stat_header(file) fprintf(file, "label,E(ts)_l,E(ts)_r,E(tq)_l,E(tq)_r,util_l,util_r\n")
-#define printCSV_stat(file, name, stat) fprintf(file, "%s,%.9lf,%.9lf,%.9lf,%.9lf,%.9lf,%.9lf\n", name, stat.avg_ts[0], stat.avg_ts[1],	\
-		stat.avg_tq[0], stat.avg_tq[1], stat.util[0], stat.util[1])
 
-#define printCSV_stat_prio_header(file) fprintf(file, "label,E(ts)_l,E(ts)_r,E(ts1)_l,E(ts1)_r,E(ts2)_l,E(ts2)_r,"\
-		"E(tq)_l,E(tq)_r,E(tq1)_l,E(tq1)_r,E(tq2)_l,E(tq2)_r,"\
-		"util_l,util_r,util1_l,util1_r,util2_l,util2_r,"\
+#define printCSV_stat(file, name, stat) fprintf(file, "%s,%.9lf,%.9lf,%.9lf,%.9lf,%.9lf,%.9lf\n", name,			\
+		stat.avg_ts[0], stat.avg_ts[1],	stat.avg_tq[0], stat.avg_tq[1], stat.util[0], stat.util[1])
+
+#define printCSV_stat_prio_header(file) fprintf(file, "label,E(ts)_l,E(ts)_r,E(ts1)_l,E(ts1)_r,E(ts2)_l,E(ts2)_r,"	\
+		"E(tq)_l,E(tq)_r,E(tq1)_l,E(tq1)_r,E(tq2)_l,E(tq2)_r,"							\
+		"util_l,util_r,util1_l,util1_r,util2_l,util2_r,"							\
 		"sd2_l,sd2_r\n")
-#define printCSV_stat_prio(file, name, stat) fprintf(file, "%s,%.9lf,%.9lf,%.9lf,%.9lf,%.9lf,%.9lf,"\
-		"%.9lf,%.9lf,%.9lf,%.9lf,%.9lf,%.9lf,"\
-		"%.9lf,%.9lf,%.9lf,%.9lf,%.9lf,%.9lf,"\
+#define printCSV_stat_prio(file, name, stat) fprintf(file, "%s,%.9lf,%.9lf,%.9lf,%.9lf,%.9lf,%.9lf,"			\
+		"%.9lf,%.9lf,%.9lf,%.9lf,%.9lf,%.9lf,"									\
+		"%.9lf,%.9lf,%.9lf,%.9lf,%.9lf,%.9lf,"									\
 		"%.9lf,%.9lf\n", name, 											\
 		stat.avg_ts[0], stat.avg_ts[1],	stat.avg_ts1[0], stat.avg_ts1[1], stat.avg_ts2[0], stat.avg_ts2[1],	\
 		stat.avg_tq[0], stat.avg_tq[1], stat.avg_tq1[0], stat.avg_tq1[1], stat.avg_tq2[0], stat.avg_tq2[1],	\

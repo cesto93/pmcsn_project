@@ -7,51 +7,46 @@
 #include "list.h"
 #include "utils.h"
 #include "msq.h"
+#include "transient.h"
 
-#define START	0.0	// initial time
-#define STOP	30000.0	// terminal (close the door) time
+#define STEADY_STOP	30000.0	// terminal (close the door) time
 
-typedef struct sim_result (*func_sim)(const unsigned int servers, double lambda, double mu, const unsigned long seed);
-
-struct class_info {
-	long nqueue; // number in queue
-	long nservice; // number in sevice
-	long index; /* used to count departed jobs */
-	double node_area; /* time integrated number in the node  */
-	double queue_area; /* time integrated number in the queue */
-	double service_area; /* time integrated number in service   */
-};
-
-#define update_class_area(c_info, next, current) do {					\
-	c_info.node_area += (next - current) * (c_info.nservice + c_info.nqueue);	\
-	c_info.queue_area += (next - current) * (c_info.nqueue);			\
-	c_info.service_area += (next - current) * (c_info.nservice);			\
-	} while(0)
-
-static double GetInterarrival(const double lambda)
+double GetInterarrival(const double lambda)
 {
 	SelectStream(0);
 	return Exponential(1.0 / lambda);
 }
 
-static double GetService(const double mu)
+double GetService(const double mu)
 {
 	SelectStream(1);
 	return Exponential(1.0 / mu);
 }
 
-static int GetClass(const double p)
+int GetClass(const double p)
 {
 	SelectStream(2);
 	return Bernoulli(p);
 }
 
-struct sim_result simulation(const unsigned int servers, double lambda, double mu, unsigned long seed)
+void set_sim_result(struct sim_result *res, struct class_info tot, double current, double last, int servers)
+{
+	res->avg_ts = tot.node_area / tot.index;
+	res->avg_tq = tot.queue_area / tot.index, 
+	res->util = tot.service_area / (current * servers);
+	res->service_time = tot.service_area / tot.index;
+	res->avg_nnode = tot.node_area / current;
+	res->avg_nqueue = tot.queue_area / current;
+	res->njobs = tot.index;
+	res->interarr_time = last / tot.index;
+}		
+
+struct sim_result simul(const unsigned int servers, double lambda, double mu, unsigned long seed, long seconds)
 {	
-	double current = START; // current time
+	double current = 0.0; // current time
 	double arrival = current + GetInterarrival(lambda); // next arrival time
-	double completion = STOP; // next completion time
-	double last = START; // last arrival time
+	double completion = seconds; // next completion time
+	double last = 0.0; // last arrival time
 	
 	struct class_info tot = {0,0,0,0.0,0.0,0.0};
 	 
@@ -59,7 +54,7 @@ struct sim_result simulation(const unsigned int servers, double lambda, double m
 
 	PlantSeeds(seed);
 
-	for (double next = arrival; next < STOP; next = min(arrival, completion)) {
+	for (double next = arrival; next < seconds; next = min(arrival, completion)) {
 		if (tot.nservice > 0) {	/* update integrals  */
 			update_class_area(tot, next, current);
 		}
@@ -74,7 +69,7 @@ struct sim_result simulation(const unsigned int servers, double lambda, double m
 				tot.nqueue++;
 			}
 			arrival = current + GetInterarrival(lambda);
-			if (arrival > STOP)
+			if (arrival > seconds)
 				last = current;
 		} else { /* process a completion */
 			tot.index++;
@@ -85,23 +80,19 @@ struct sim_result simulation(const unsigned int servers, double lambda, double m
 				tot.nservice++;
 				tot.nqueue--;
 			}
-			completion = tot.nservice > 0 ? residual_list->val : STOP;
+			completion = tot.nservice > 0 ? residual_list->val : seconds;
 		}
 	}
-
-	struct sim_result res = {
-		.avg_ts = tot.node_area / tot.index, .avg_tq = tot.queue_area / tot.index, .util = tot.service_area / (current * servers),
-		.service_time = tot.service_area / tot.index, .avg_nnode = tot.node_area / current, .avg_nqueue = tot.queue_area / current,
-		.njobs = tot.index, .interarr_time = last / tot.index, 
-	};
+	struct sim_result res;
+	set_sim_result(&res, tot, current, last, servers);
 	return res;
 }
 
-struct sim_result_prio simulation_prio(const unsigned int servers, double lambda, double mu, unsigned long seed, double p1)
+struct sim_result_prio simul_prio(const unsigned int servers, double lambda, double mu, unsigned long seed, double p1, long seconds)
 {	
-	double current = START; // current time
+	double current = 0.0; // current time
 	double arrival = current + GetInterarrival(lambda); // next arrival time
-	double completion = STOP; // next completion time
+	double completion = seconds; // next completion time
 	 
 	struct node_t *residual_list = NULL;
 	
@@ -111,7 +102,7 @@ struct sim_result_prio simulation_prio(const unsigned int servers, double lambda
 
 	PlantSeeds(seed);
 
-	for (double next = arrival; next < STOP; next = min(arrival, completion)) {
+	for (double next = arrival; next < seconds; next = min(arrival, completion)) {
 		if (tot.nservice > 0) {	/* update integrals  */
 			update_class_area(tot, next, current);
 			update_class_area(c1, next, current);
@@ -162,7 +153,7 @@ struct sim_result_prio simulation_prio(const unsigned int servers, double lambda
 					add_ordered_prio(&residual_list, current + GetService(mu), STANDARD);
 				}
 			}
-			completion = tot.nservice > 0 ? residual_list->val : STOP;
+			completion = tot.nservice > 0 ? residual_list->val : seconds;
 		}
 	}
 
@@ -177,16 +168,18 @@ struct sim_result_prio simulation_prio(const unsigned int servers, double lambda
 	return res;
 }
 
-void write_output_csv(const char *output_path, struct sim_param *param, int nparam, unsigned long *seeds, int nseeds)
+void write_csv_steady(const char *output_path, const char *input_path, unsigned long *seeds, int nseeds)
 {
-	char path[35];
+	struct sim_param *param = NULL;
+	int nparam = readCSV_param(input_path, &param);
+	char path[45];
 	for (int i = 0; i < nparam; i++) {
 		sprintf(path, output_path, param[i].label);
 		FILE * res_file = fopen(path, "w");	
 		fprintf(res_file, "m,lambda,mu,seed,E(ts),E(tq),util\n");
 		for (int j = 0; j < nseeds; j++) {
 			param[i].seed = seeds[j];
-			struct sim_result res = simulation(param[i].m, param[i].lambda, param[i].mu, param[i].seed);
+			struct sim_result res = simul(param[i].m, param[i].lambda, param[i].mu, param[i].seed, STEADY_STOP);
 			printCSV(res_file, param[i], res);
 		}
 		fclose(res_file);
@@ -194,19 +187,98 @@ void write_output_csv(const char *output_path, struct sim_param *param, int npar
 	printf("done %s\n", path);
 }
 
-void write_output_csv_prio(const char *output_path, struct sim_param_prio *param, int nparam, unsigned long *seeds, int nseeds)
+void write_csv_prio_steady(const char *output_path, const char *input_path, unsigned long *seeds, int nseeds)
 {
-	char path[35];
+	struct sim_param_prio *param = NULL;
+	int nparam = readCSV_param_prio(input_path, &param);
+	char path[45];
 	for (int i = 0; i < nparam; i++) {
 		sprintf(path, output_path, param[i].label);
 		FILE * res_file = fopen(path, "w");	
 		printCSV_prio_header(res_file);
 		for (int j = 0; j < nseeds; j++) {
 			param[i].seed = seeds[j];
-			struct sim_result_prio res = simulation_prio(param[i].m, param[i].lambda, param[i].mu, param[i].seed, param[i].p1);
+			struct sim_result_prio res = simul_prio(param[i].m, param[i].lambda, param[i].mu, param[i].seed, param[i].p1,
+								STEADY_STOP);
 			printCSV_prio(res_file, param[i], res);
 		}
 		fclose(res_file);
+	}
+	printf("done %s\n", path);
+}
+
+void write_csv_transient(const char *output_path, const char *input_path, unsigned long *seeds, int nseeds)
+{
+	struct sim_param *param = NULL;
+	int nparam = readCSV_param(input_path, &param);
+	
+	char path[50];
+	struct class_info tot = {0,0,0,0.0,0.0,0.0};
+	struct sim_result res[nparam][nseeds];
+	struct node_t *residual_list = NULL; 
+	
+	
+	for (int i = 0; i < nseeds; i++) {
+		unsigned long temp_seed = seeds[i];
+		int last =  nparam - 1;
+		transient_simul(param[last].m, param[last].lambda, param[last].mu, &temp_seed, param[last].seconds, &tot, &residual_list);
+		for (int j = 0; j < nparam; j++) {
+			res[j][i] = transient_simul(param[j].m, param[j].lambda, param[j].mu, &temp_seed, param[j].seconds, &tot,
+						    &residual_list);
+		}
+		free_list(&residual_list);
+		empty_class_info(tot);
+	}
+	
+	for (int i = 0; i < nparam; i++) {
+		sprintf(path, output_path, param[i].label);
+		FILE * res_file = fopen(path, "w");
+		fprintf(res_file, "m,lambda,mu,seed,E(ts),E(tq),util\n");
+		for (int j = 0; j < nseeds; j++) {
+			param[i].seed = seeds[j];
+			printCSV(res_file, param[i], res[i][j]);
+		}
+		fclose(res_file);	
+	}	
+	printf("done %s\n", path);
+}
+
+void write_csv_prio_transient(const char *output_path, const char *input_path, unsigned long *seeds, int nseeds)
+{
+	struct sim_param_prio *param = NULL;
+	int nparam = readCSV_param_prio(input_path, &param);
+	
+	char path[50];
+	struct class_info c1 = {0,0,0,0.0,0.0,0.0};
+	struct class_info c2 = {0,0,0,0.0,0.0,0.0};
+	struct class_info tot = {0,0,0,0.0,0.0,0.0};
+	struct sim_result_prio res[nparam][nseeds];
+	struct node_t *residual_list = NULL;
+	
+	for (int i = 0; i < nseeds; i++) {
+		unsigned long temp_seed = seeds[i];
+		const int last = nparam - 1;
+		transient_simul_prio(param[last].m, param[last].lambda, param[last].mu, &temp_seed, param[last].p1, param[last].seconds, 
+				     &c1, &c2, &tot, &residual_list);
+		for (int j = 0; j < nparam; j++) {
+			res[j][i] = transient_simul_prio(param[j].m, param[j].lambda, param[j].mu, &temp_seed, param[j].p1, 
+							 param[j].seconds, &c1, &c2, &tot, &residual_list);	
+		}
+		free_list(&residual_list);
+		empty_class_info(c1);
+		empty_class_info(c2);
+		empty_class_info(tot);
+	}
+	
+	for (int i = 0; i < nparam; i++) {
+		sprintf(path, output_path, param[i].label);
+		FILE * res_file = fopen(path, "w");
+		printCSV_prio_header(res_file);
+		for (int j = 0; j < nseeds; j++) {
+			param[i].seed = seeds[j];
+			printCSV_prio(res_file, param[i], res[i][j]);
+		}
+		fclose(res_file);	
 	}
 	printf("done %s\n", path);
 }
@@ -225,35 +297,20 @@ void printRes(struct sim_result res)
 
 int main()
 {
-	struct sim_param *param = NULL;
-	struct sim_param_prio *param_prio = NULL;
-	unsigned long *seeds = NULL;
-	int nparam;
+	unsigned long *seeds = NULL;		
+	const int nseeds = readSeed("./input/seed.csv", &seeds);
 	
-	FILE * http_param = fopen("./input/http_param.csv", "r");
-	FILE * multi_param = fopen("./input/multi_param.csv", "r");
-	FILE * http_param_prio = fopen("./input/http_prio_param.csv", "r");
-	FILE * multi_param_prio = fopen("./input/multi_prio_param.csv", "r");
-	FILE * seeds_file = fopen("./input/seed.csv", "r");
+	/*write_csv_steady("./output/steady/standard/%s.csv", "./input/http_param.csv", seeds, nseeds);
+	write_csv_steady("./output/steady/standard/%s.csv", "./input/multi_param.csv", seeds, nseeds);
 	
-	if (http_param == NULL || multi_param == NULL || http_param_prio == NULL || multi_param_prio == NULL || seeds_file == NULL) {
-		error_msg("error in fopen");
-		return 0;
-	}	
+	write_csv_prio_steady("./output/steady/priority/%s.csv", "./input/http_prio_param.csv", seeds, nseeds);
+	write_csv_prio_steady("./output/steady/priority/%s.csv", "./input/multi_prio_param.csv", seeds, nseeds);*/
 	
-	const int nseeds = readSeed(seeds_file, &seeds);
+	write_csv_transient("./output/transient/standard/%s.csv", "./input/transient/http_param.csv", seeds, nseeds);
+	write_csv_transient("./output/transient/standard/%s.csv", "./input/transient/multi_param.csv", seeds, nseeds);
 	
-	nparam = readCSV_param(http_param, &param);
-	write_output_csv("./output/base/%s.csv", param, nparam, seeds, nseeds);
-	nparam = readCSV_param(multi_param, &param);
-	write_output_csv("./output/base/%s.csv", param, nparam, seeds, nseeds);
-	free(param);
-	
-	nparam = readCSV_param_prio(http_param_prio, &param_prio);
-	write_output_csv_prio("./output/priority/%s.csv", param_prio, nparam, seeds, nseeds);
-	nparam = readCSV_param_prio(multi_param_prio, &param_prio);
-	write_output_csv_prio("./output/priority/%s.csv", param_prio, nparam, seeds, nseeds);
-	free(param_prio);
+	write_csv_prio_transient("./output/transient/priority/%s.csv", "./input/transient/http_prio_param.csv", seeds, nseeds);
+	write_csv_prio_transient("./output/transient/priority/%s.csv", "./input/transient/multi_prio_param.csv", seeds, nseeds);
 
 	return EXIT_SUCCESS;
 }

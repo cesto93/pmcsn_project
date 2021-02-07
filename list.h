@@ -10,6 +10,7 @@ struct node_t {
 void add_ordered_prio(struct node_t **pnext, double val, int priority);
 void add_last_prio(struct node_t **pnext, double val, int priority);
 void remove_next(struct node_t **pnext);
+void free_list(struct node_t **pnext);
 
 #define for_each(pos, head) for ((pos) = (head); (pos) != NULL; (pos) = (pos)->next)
 

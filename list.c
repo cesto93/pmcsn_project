@@ -28,6 +28,12 @@ void remove_next(struct node_t **pnext)
 	*pnext = p;
 }
 
+void free_list(struct node_t **pnext)
+{
+	while(*pnext != NULL)
+		remove_next(pnext);
+}
+
 void add_last_prio(struct node_t **pnext, double val, int priority) 
 {
 	struct node_t *p;
