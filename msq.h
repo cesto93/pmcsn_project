@@ -67,13 +67,26 @@ struct class_info {
 		(cl_info).service_area = 0;	\
 	} while (0)
 
-#define update_class_area(c_info, next, current) do {					\
-	(c_info).node_area += (next - current) * ((c_info).nservice + (c_info).nqueue);	\
-	(c_info).queue_area += (next - current) * ((c_info).nqueue);			\
-	(c_info).service_area += (next - current) * ((c_info).nservice);			\
+#define update_class_area(c_info, next, current) do {						\
+		(c_info).node_area += (next - current) * ((c_info).nservice + (c_info).nqueue);	\
+		(c_info).queue_area += (next - current) * ((c_info).nqueue);			\
+		(c_info).service_area += (next - current) * ((c_info).nservice);		\
 	} while(0)
 
-void set_sim_result(struct sim_result *res, struct class_info tot, double current, double last, int servers);	
+#define update_class_area_transient(c_info, servers, next, current) do {				\
+		(c_info).queue_area += (next - current) * ((c_info).nqueue);				\
+		if ((c_info).nservice <= servers) {								\
+			(c_info).service_area += (next - current) * ((c_info).nservice);		\
+			(c_info).node_area += (next - current) * ((c_info).nservice + (c_info).nqueue);	\
+		} else {										\
+			(c_info).service_area += (next - current) * (servers);		\
+			(c_info).node_area += (next - current) * (servers + (c_info).nqueue);	\
+		}											\
+	} while(0)	
+
+void set_sim_result(struct sim_result *res, struct class_info tot, double current, double last, int servers);
+void set_sim_result_prio(struct sim_result_prio *res, struct class_info tot, struct class_info c1, struct class_info c2, 
+			 double current, int servers);
 
 double GetInterarrival(const double lambda);
 double GetService(const double mu);

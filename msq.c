@@ -8,6 +8,7 @@
 #include "utils.h"
 #include "msq.h"
 #include "transient.h"
+#include "csv.h"
 
 #define STEADY_STOP	30000.0	// terminal (close the door) time
 
@@ -31,14 +32,65 @@ int GetClass(const double p)
 
 void set_sim_result(struct sim_result *res, struct class_info tot, double current, double last, int servers)
 {
-	res->avg_ts = tot.node_area / tot.index;
-	res->avg_tq = tot.queue_area / tot.index, 
-	res->util = tot.service_area / (current * servers);
-	res->service_time = tot.service_area / tot.index;
-	res->avg_nnode = tot.node_area / current;
-	res->avg_nqueue = tot.queue_area / current;
+	if (tot.index > 0) {
+		res->avg_ts = tot.node_area / tot.index;
+		res->avg_tq = tot.queue_area / tot.index;
+		res->service_time = tot.service_area / tot.index;
+		res->interarr_time = last / tot.index;
+	} else {
+		res->avg_ts = 0;
+		res->avg_tq = 0;
+		res->service_time = 0;
+		res->interarr_time = 0;
+	}
+	
+	if (current > 0.0) {
+		res->util = tot.service_area / (current * servers);
+		res->avg_nnode = tot.node_area / current;
+		res->avg_nqueue = tot.queue_area / current;
+	} else {
+		res->util = 0;
+		res->avg_nnode = 0;
+		res->avg_nqueue = 0;		
+	}
 	res->njobs = tot.index;
-	res->interarr_time = last / tot.index;
+}
+
+void set_sim_result_prio(struct sim_result_prio *res, struct class_info tot, struct class_info c1, struct class_info c2, 
+			 double current, int servers)
+{
+	if (tot.index != 0) {
+		res->avg_ts = tot.node_area / tot.index;
+		res->avg_ts1 = c1.node_area / c1.index;
+		res->avg_ts2 = c2.node_area / c2.index;
+		res->avg_tq = tot.queue_area / tot.index;
+		res->avg_tq1 = c1.queue_area / c1.index;
+		res->avg_tq2 = c2.queue_area / c2.index;
+		res->service_time = tot.service_area / tot.index;
+	} else {
+		res->avg_ts = 0;
+		res->avg_ts1 = 0;
+		res->avg_ts2 = 0;
+		res->avg_tq = 0;
+		res->avg_tq1 = 0;
+		res->avg_tq2 = 0;
+		res->service_time = 0;
+	}
+	
+	if (current != 0.0) {
+		res->util = tot.service_area / (current * servers);
+		res->util1 = c1.service_area / (current * servers);
+		res->util2 = c2.service_area / (current * servers);
+		res->avg_nnode = tot.node_area / current;
+		res->avg_nqueue = tot.queue_area / current;
+	} else {
+		res->util = 0;
+		res->util1 = 0;
+		res->util2 = 0;
+		res->avg_nnode = 0;
+		res->avg_nqueue = 0;		
+	}
+	res->njobs = tot.index;
 }		
 
 struct sim_result simul(const unsigned int servers, double lambda, double mu, unsigned long seed, long seconds)
@@ -176,7 +228,7 @@ void write_csv_steady(const char *output_path, const char *input_path, unsigned 
 	for (int i = 0; i < nparam; i++) {
 		sprintf(path, output_path, param[i].label);
 		FILE * res_file = fopen(path, "w");	
-		fprintf(res_file, "m,lambda,mu,seed,E(ts),E(tq),util\n");
+		printCSV_header(res_file);
 		for (int j = 0; j < nseeds; j++) {
 			param[i].seed = seeds[j];
 			struct sim_result res = simul(param[i].m, param[i].lambda, param[i].mu, param[i].seed, STEADY_STOP);
@@ -300,17 +352,17 @@ int main()
 	unsigned long *seeds = NULL;		
 	const int nseeds = readSeed("./input/seed.csv", &seeds);
 	
-	/*write_csv_steady("./output/steady/standard/%s.csv", "./input/http_param.csv", seeds, nseeds);
-	write_csv_steady("./output/steady/standard/%s.csv", "./input/multi_param.csv", seeds, nseeds);
+	/*write_csv_steady("./output/steady/standard/%s.csv", "./input/steady/http_param.csv", seeds, nseeds);
+	write_csv_steady("./output/steady/standard/%s.csv", "./input/steady/multi_param.csv", seeds, nseeds);
 	
-	write_csv_prio_steady("./output/steady/priority/%s.csv", "./input/http_prio_param.csv", seeds, nseeds);
-	write_csv_prio_steady("./output/steady/priority/%s.csv", "./input/multi_prio_param.csv", seeds, nseeds);*/
+	write_csv_prio_steady("./output/steady/priority/%s.csv", "./input/steady/http_prio_param.csv", seeds, nseeds);
+	write_csv_prio_steady("./output/steady/priority/%s.csv", "./input/steady/multi_prio_param.csv", seeds, nseeds);*/
 	
 	write_csv_transient("./output/transient/standard/%s.csv", "./input/transient/http_param.csv", seeds, nseeds);
-	write_csv_transient("./output/transient/standard/%s.csv", "./input/transient/multi_param.csv", seeds, nseeds);
+	//write_csv_transient("./output/transient/standard/%s.csv", "./input/transient/multi_param.csv", seeds, nseeds);
 	
-	write_csv_prio_transient("./output/transient/priority/%s.csv", "./input/transient/http_prio_param.csv", seeds, nseeds);
-	write_csv_prio_transient("./output/transient/priority/%s.csv", "./input/transient/multi_prio_param.csv", seeds, nseeds);
+	/*write_csv_prio_transient("./output/transient/priority/%s.csv", "./input/transient/http_prio_param.csv", seeds, nseeds);
+	write_csv_prio_transient("./output/transient/priority/%s.csv", "./input/transient/multi_prio_param.csv", seeds, nseeds);*/
 
 	return EXIT_SUCCESS;
 }

@@ -1,12 +1,11 @@
 #include <stdlib.h>
 
+#include "transient.h"
 #include "rngs.h"
 #include "utils.h"
-#include "list.h"
-#include "msq.h"
 
-struct sim_result transient_simul(unsigned int servers, double lambda, double mu, unsigned long *seed, long seconds, 
-				    struct class_info *tot, struct node_t **residual_list)
+struct sim_result transient_simul(unsigned int servers, double lambda, double mu, unsigned long *seed, double seconds, 
+				  struct class_info *tot, struct node_t **residual_list)
 {	
 	double current = 0.0; // current time
 	double arrival = current + GetInterarrival(lambda); // next arrival time
@@ -32,7 +31,7 @@ struct sim_result transient_simul(unsigned int servers, double lambda, double mu
 	for (double next = arrival; next < seconds; next = min(arrival, completion)) {
 		
 		if (tot->nservice > 0) {	/* update integrals  */
-			update_class_area(*tot, next, current);
+			update_class_area_transient(*tot, servers, next, current);
 		}
 		
 		current = next;	/* advance the clock */
@@ -63,14 +62,14 @@ struct sim_result transient_simul(unsigned int servers, double lambda, double mu
 	
 	for (struct node_t *temp = *residual_list; temp !=NULL; temp = temp->next)
 		temp->val -= current;
-
+		
 	struct sim_result res;
 	set_sim_result(&res, *tot, current, last, servers);
 	return res;
 }
 
 struct sim_result_prio transient_simul_prio(unsigned int servers, double lambda, double mu, unsigned long *seed, double p1, 
-					    long seconds, struct class_info *c1, struct class_info *c2, struct class_info *tot,
+					    double seconds, struct class_info *c1, struct class_info *c2, struct class_info *tot,
 					    struct node_t **residual_list)
 {	
 	double current = 0.0; // current time
@@ -102,9 +101,9 @@ struct sim_result_prio transient_simul_prio(unsigned int servers, double lambda,
 
 	for (double next = arrival; next < seconds; next = min(arrival, completion)) {
 		if (tot->nservice > 0) {	/* update integrals  */
-			update_class_area(*tot, next, current);
-			update_class_area(*c1, next, current);
-			update_class_area(*c2, next, current);
+			update_class_area_transient(*tot, servers, next, current);
+			update_class_area_transient(*c1, servers, next, current);
+			update_class_area_transient(*c2, servers, next, current);
 		}
 		current = next;	/* advance the clock */
 
@@ -158,13 +157,7 @@ struct sim_result_prio transient_simul_prio(unsigned int servers, double lambda,
 	for (struct node_t *temp = *residual_list; temp !=NULL; temp = temp->next)
 		temp->val -= current;
 
-	struct sim_result_prio res = {
-		.avg_ts = tot->node_area / tot->index, .avg_ts1 = c1->node_area / c1->index, .avg_ts2 = c2->node_area / c2->index,
-		.avg_tq = tot->queue_area / tot->index, .avg_tq1 = c1->queue_area / c1->index, .avg_tq2 = c2->queue_area / c2->index, 
-		.util = tot->service_area / (current * servers), .util1 = c1->service_area / (current * servers), 
-		.util2 = c2->service_area / (current * servers),
-		.service_time = tot->service_area / tot->index, .avg_nnode = tot->node_area / current, .avg_nqueue = tot->queue_area / current,
-		.njobs = tot->index
-	};
+	struct sim_result_prio res;
+	set_sim_result_prio(&res, *tot, *c1, *c2, current, servers);
 	return res;
 }
