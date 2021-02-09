@@ -1,7 +1,7 @@
 #ifndef TRANSIENT_H
 #define TRANSIENT_H
 
-#include "list.h"
+#include "utils/list.h"
 #include "msq.h"
 
 struct sim_result transient_simul(unsigned int servers, double lambda, double mu, unsigned long *seed, double seconds, 

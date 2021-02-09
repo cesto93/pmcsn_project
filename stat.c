@@ -4,8 +4,8 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include "utils.h"
-#include "csv.h"
+#include "utils/utils.h"
+#include "utils/csv.h"
 
 const double student_20[] = {1.72472, 2.08596, 2.52798, 2.84534, 3.55181, 3.84952};
 const double student_19[] = {1.729, 2.093, 2.539, 2.861, 3.579, 3.883};

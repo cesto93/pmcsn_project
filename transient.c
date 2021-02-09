@@ -2,7 +2,7 @@
 
 #include "transient.h"
 #include "rngs.h"
-#include "utils.h"
+#include "utils/utils.h"
 
 /* this simulation is transient if residual_list and tot are initializated */
 struct sim_result transient_simul(unsigned int servers, double lambda, double mu, unsigned long *seed, double seconds, 

@@ -1,8 +1,8 @@
 #ifndef CSV_H
 #define CSV_H
 
-#include "msq.h"
-#include "stat.h"
+#include "../msq.h"
+#include "../stat.h"
 
 int readSeed(const char *input_path, unsigned long ** seeds);
 int readCSV_param(const char *input_path, struct sim_param ** param);

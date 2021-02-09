@@ -1,7 +1,7 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#include "msq.h"
+#include "../msq.h"
 #include <stdio.h>
 
 void error_msg(char *msg);					
