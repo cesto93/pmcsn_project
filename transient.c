@@ -4,6 +4,7 @@
 #include "rngs.h"
 #include "utils.h"
 
+/* this simulation is transient if residual_list and tot are initializated */
 struct sim_result transient_simul(unsigned int servers, double lambda, double mu, unsigned long *seed, double seconds, 
 				  struct class_info *tot, struct node_t **residual_list)
 {	
@@ -68,6 +69,7 @@ struct sim_result transient_simul(unsigned int servers, double lambda, double mu
 	return res;
 }
 
+/* this simulation is transient if residual_list and tot,c1,c2 are initializated */
 struct sim_result_prio transient_simul_prio(unsigned int servers, double lambda, double mu, unsigned long *seed, double p1, 
 					    double seconds, struct class_info *c1, struct class_info *c2, struct class_info *tot,
 					    struct node_t **residual_list)

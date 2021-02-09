@@ -67,7 +67,7 @@ void set_sim_result_prio(struct sim_result_prio *res, struct class_info tot, str
 		res->avg_tq1 = c1.queue_area / c1.index;
 		res->avg_tq2 = c2.queue_area / c2.index;
 		res->service_time = tot.service_area / tot.index;
-	} else {
+	} else { // avoid nan
 		res->avg_ts = 0;
 		res->avg_ts1 = 0;
 		res->avg_ts2 = 0;
@@ -83,7 +83,7 @@ void set_sim_result_prio(struct sim_result_prio *res, struct class_info tot, str
 		res->util2 = c2.service_area / (current * servers);
 		res->avg_nnode = tot.node_area / current;
 		res->avg_nqueue = tot.queue_area / current;
-	} else {
+	} else { 	// avoid nan
 		res->util = 0;
 		res->util1 = 0;
 		res->util2 = 0;
@@ -93,6 +93,7 @@ void set_sim_result_prio(struct sim_result_prio *res, struct class_info tot, str
 	res->njobs = tot.index;
 }		
 
+/* steadystate simulation start at 0.0 */
 struct sim_result simul(const unsigned int servers, double lambda, double mu, unsigned long seed, long seconds)
 {	
 	double current = 0.0; // current time
@@ -140,6 +141,7 @@ struct sim_result simul(const unsigned int servers, double lambda, double mu, un
 	return res;
 }
 
+/* steadystate simulation start at 0.0 */
 struct sim_result_prio simul_prio(const unsigned int servers, double lambda, double mu, unsigned long seed, double p1, long seconds)
 {	
 	double current = 0.0; // current time
@@ -273,6 +275,7 @@ void write_csv_transient(const char *output_path, const char *input_path, unsign
 	for (int i = 0; i < nseeds; i++) {
 		unsigned long temp_seed = seeds[i];
 		int last =  nparam - 1;
+		// initialize residual_list and tot with a full run
 		transient_simul(param[last].m, param[last].lambda, param[last].mu, &temp_seed, param[last].seconds, &tot, &residual_list);
 		for (int j = 0; j < nparam; j++) {
 			res[j][i] = transient_simul(param[j].m, param[j].lambda, param[j].mu, &temp_seed, param[j].seconds, &tot,
@@ -310,6 +313,9 @@ void write_csv_prio_transient(const char *output_path, const char *input_path, u
 	for (int i = 0; i < nseeds; i++) {
 		unsigned long temp_seed = seeds[i];
 		const int last = nparam - 1;
+		
+		
+		// initialize residual_list and tot,c1,c2 with a full run
 		transient_simul_prio(param[last].m, param[last].lambda, param[last].mu, &temp_seed, param[last].p1, param[last].seconds, 
 				     &c1, &c2, &tot, &residual_list);
 		for (int j = 0; j < nparam; j++) {
@@ -352,17 +358,17 @@ int main()
 	unsigned long *seeds = NULL;		
 	const int nseeds = readSeed("./input/seed.csv", &seeds);
 	
-	/*write_csv_steady("./output/steady/standard/%s.csv", "./input/steady/http_param.csv", seeds, nseeds);
+	write_csv_steady("./output/steady/standard/%s.csv", "./input/steady/http_param.csv", seeds, nseeds);
 	write_csv_steady("./output/steady/standard/%s.csv", "./input/steady/multi_param.csv", seeds, nseeds);
 	
 	write_csv_prio_steady("./output/steady/priority/%s.csv", "./input/steady/http_prio_param.csv", seeds, nseeds);
-	write_csv_prio_steady("./output/steady/priority/%s.csv", "./input/steady/multi_prio_param.csv", seeds, nseeds);*/
+	write_csv_prio_steady("./output/steady/priority/%s.csv", "./input/steady/multi_prio_param.csv", seeds, nseeds);
 	
 	write_csv_transient("./output/transient/standard/%s.csv", "./input/transient/http_param.csv", seeds, nseeds);
-	//write_csv_transient("./output/transient/standard/%s.csv", "./input/transient/multi_param.csv", seeds, nseeds);
+	write_csv_transient("./output/transient/standard/%s.csv", "./input/transient/multi_param.csv", seeds, nseeds);
 	
-	/*write_csv_prio_transient("./output/transient/priority/%s.csv", "./input/transient/http_prio_param.csv", seeds, nseeds);
-	write_csv_prio_transient("./output/transient/priority/%s.csv", "./input/transient/multi_prio_param.csv", seeds, nseeds);*/
+	write_csv_prio_transient("./output/transient/priority/%s.csv", "./input/transient/http_prio_param.csv", seeds, nseeds);
+	write_csv_prio_transient("./output/transient/priority/%s.csv", "./input/transient/multi_prio_param.csv", seeds, nseeds);
 
 	return EXIT_SUCCESS;
 }

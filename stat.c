@@ -18,6 +18,7 @@ const double student_10[] = {1.812, 2.228, 2.764, 3.169, 4.144, 4.587};
 #define confidenza_998 4
 #define confidenza_999 5	
 
+/* calculate sample mean and sample variance returned as point */
 void mean_and_var(double val[], int size, double *mean, double *var) 
 {
 	int n = 0;
@@ -33,6 +34,7 @@ void mean_and_var(double val[], int size, double *mean, double *var)
 		*var = sum / (n-1);
 }
 
+/* estimate confidence interval and returnt it as pointer res[0] left value, res[1] right value */
 void confidence_interval(double val[], int size, double *res) {
 	double mean, var;
 	mean_and_var(val, size, &mean, &var);
