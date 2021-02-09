@@ -26,6 +26,11 @@ struct sim_result transient_simul(unsigned int servers, double lambda, double mu
 		add_ordered(residual_list, current + GetService(mu));
 	}
 	
+	/* while (tot->nservice > servers) {
+		tot->nservice--;
+		remove_next(residual_list);
+	} */
+	
 	if (tot->nservice > 0)
 		completion = (*residual_list)->val;	
 	
@@ -84,6 +89,16 @@ struct sim_result_prio transient_simul_prio(unsigned int servers, double lambda,
 	tot->node_area = 0;
 	tot->index = 0;
 	
+	c1->service_area = 0;
+	c1->queue_area = 0;
+	c1->node_area = 0;
+	c1->index = 0;
+	
+	c2->service_area = 0;
+	c2->queue_area = 0;
+	c2->node_area = 0;
+	c2->index = 0;
+	
 	while (tot->nservice < servers && tot->nqueue != 0) {
 		tot->nservice++;
 		tot->nqueue--;
@@ -97,6 +112,15 @@ struct sim_result_prio transient_simul_prio(unsigned int servers, double lambda,
 			add_ordered_prio(residual_list, current + GetService(mu), STANDARD);
 		}
 	}
+	
+	/*while (tot->nservice > servers) {
+		tot->nservice--;
+		if ((*residual_list)->priority == PREMIUM)
+			c1->nservice--;
+		else
+			c2->nservice--;
+		remove_next(residual_list);
+	}*/
 	
 	if (tot->nservice > 0)
 		completion = (*residual_list)->val;

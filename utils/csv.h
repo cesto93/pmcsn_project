@@ -18,7 +18,7 @@ int readCSV_res_prio(const char *input_path, struct sim_prio_data * result);
 
 #define printCSV_prio_header(file) fprintf(file, "sec,m,lambda,mu,seed,E(ts),E(ts1),E(ts2),E(tq),E(tq1),E(tq2),util,util1,util2,E(s)\n")
 			
-#define printCSV_prio(file, param, res) fprintf(file, "%lf,%d,%d,%d,%lu,%.9f,%.9f,%.9f, %.9f,%.9f,%.9f, %.9f,%.9f,%.9f,%.9f\n",		\
+#define printCSV_prio(file, param, res) fprintf(file, "%lf,%d,%d,%d,%lu,%.9f,%.9f,%.9f,%.9f,%.9f,%.9f, %.9f,%.9f,%.9f,%.9f\n",		\
 			param.seconds, param.m, param.lambda, param.mu, param.seed, (res).avg_ts, (res).avg_ts1, (res).avg_ts2,		\
 			(res).avg_tq, (res).avg_tq1, (res).avg_tq2, (res).util, (res).util1, (res).util2, (res).service_time);
 

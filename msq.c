@@ -62,21 +62,30 @@ void set_sim_result_prio(struct sim_result_prio *res, struct class_info tot, str
 {
 	if (tot.index != 0) {
 		res->avg_ts = tot.node_area / tot.index;
-		res->avg_ts1 = c1.node_area / c1.index;
-		res->avg_ts2 = c2.node_area / c2.index;
 		res->avg_tq = tot.queue_area / tot.index;
-		res->avg_tq1 = c1.queue_area / c1.index;
-		res->avg_tq2 = c2.queue_area / c2.index;
 		res->service_time = tot.service_area / tot.index;
 	} else { // avoid nan
 		res->avg_ts = 0;
-		res->avg_ts1 = 0;
-		res->avg_ts2 = 0;
 		res->avg_tq = 0;
-		res->avg_tq1 = 0;
-		res->avg_tq2 = 0;
 		res->service_time = 0;
 	}
+	
+	if (c1.index != 0) {
+		res->avg_ts1 = c1.node_area / c1.index;
+		res->avg_tq1 = c1.queue_area / c1.index;
+	} else {
+		res->avg_ts1 = 0;
+		res->avg_tq1 = 0;
+	}
+	
+	if (c2.index != 0) {
+		res->avg_ts2 = c2.node_area / c2.index;
+		res->avg_tq2 = c2.queue_area / c2.index;
+	} else {
+		res->avg_ts2 = 0;
+		res->avg_tq2 = 0;
+	}
+	
 	
 	if (current != 0.0) {
 		res->util = tot.service_area / (current * servers);
@@ -143,7 +152,6 @@ void write_csv_transient(const char *output_path, const char *input_path, unsign
 	struct sim_result res[nparam][nseeds];
 	struct node_t *residual_list = NULL; 
 	
-	
 	for (int i = 0; i < nseeds; i++) {
 		unsigned long temp_seed = seeds[i];
 		int last =  nparam - 1;
@@ -185,7 +193,6 @@ void write_csv_prio_transient(const char *output_path, const char *input_path, u
 	for (int i = 0; i < nseeds; i++) {
 		unsigned long temp_seed = seeds[i];
 		const int last = nparam - 1;
-		
 		
 		// initialize residual_list and tot,c1,c2 with a full run
 		transient_simul_prio(param[last].m, param[last].lambda, param[last].mu, &temp_seed, param[last].p1, param[last].seconds, 
@@ -230,14 +237,14 @@ int main()
 	unsigned long *seeds = NULL;		
 	const int nseeds = readSeed("./input/seed.csv", &seeds);
 	
-	write_csv_steady("./output/steady/standard/%s.csv", "./input/steady/http_param.csv", seeds, nseeds);
+	/*write_csv_steady("./output/steady/standard/%s.csv", "./input/steady/http_param.csv", seeds, nseeds);
 	write_csv_steady("./output/steady/standard/%s.csv", "./input/steady/multi_param.csv", seeds, nseeds);
 	
 	write_csv_prio_steady("./output/steady/priority/%s.csv", "./input/steady/http_prio_param.csv", seeds, nseeds);
 	write_csv_prio_steady("./output/steady/priority/%s.csv", "./input/steady/multi_prio_param.csv", seeds, nseeds);
 	
 	write_csv_transient("./output/transient/standard/%s.csv", "./input/transient/http_param.csv", seeds, nseeds);
-	write_csv_transient("./output/transient/standard/%s.csv", "./input/transient/multi_param.csv", seeds, nseeds);
+	write_csv_transient("./output/transient/standard/%s.csv", "./input/transient/multi_param.csv", seeds, nseeds);*/
 	
 	write_csv_prio_transient("./output/transient/priority/%s.csv", "./input/transient/http_prio_param.csv", seeds, nseeds);
 	write_csv_prio_transient("./output/transient/priority/%s.csv", "./input/transient/multi_prio_param.csv", seeds, nseeds);
