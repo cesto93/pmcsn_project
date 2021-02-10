@@ -237,14 +237,14 @@ int main()
 	unsigned long *seeds = NULL;		
 	const int nseeds = readSeed("./input/seed.csv", &seeds);
 	
-	/*write_csv_steady("./output/steady/standard/%s.csv", "./input/steady/http_param.csv", seeds, nseeds);
+	write_csv_steady("./output/steady/standard/%s.csv", "./input/steady/http_param.csv", seeds, nseeds);
 	write_csv_steady("./output/steady/standard/%s.csv", "./input/steady/multi_param.csv", seeds, nseeds);
 	
 	write_csv_prio_steady("./output/steady/priority/%s.csv", "./input/steady/http_prio_param.csv", seeds, nseeds);
 	write_csv_prio_steady("./output/steady/priority/%s.csv", "./input/steady/multi_prio_param.csv", seeds, nseeds);
 	
 	write_csv_transient("./output/transient/standard/%s.csv", "./input/transient/http_param.csv", seeds, nseeds);
-	write_csv_transient("./output/transient/standard/%s.csv", "./input/transient/multi_param.csv", seeds, nseeds);*/
+	write_csv_transient("./output/transient/standard/%s.csv", "./input/transient/multi_param.csv", seeds, nseeds);
 	
 	write_csv_prio_transient("./output/transient/priority/%s.csv", "./input/transient/http_prio_param.csv", seeds, nseeds);
 	write_csv_prio_transient("./output/transient/priority/%s.csv", "./input/transient/multi_prio_param.csv", seeds, nseeds);
