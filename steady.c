@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <assert.h>
 
 #include "steady.h"
 #include "rngs.h"
@@ -22,6 +23,8 @@ struct sim_result simul(const unsigned int servers, double lambda, double mu, un
 		if (tot.nservice > 0) {	/* update integrals  */
 			update_class_area(tot, next, current);
 		}
+		assert(tot.nservice <= servers);
+		assert((tot.nqueue == 0 && tot.nservice == 0) || tot.nservice != 0);
 		current = next;	/* advance the clock */
 
 		if (current == arrival) { /* process an arrival */
@@ -73,6 +76,10 @@ struct sim_result_prio simul_prio(const unsigned int servers, double lambda, dou
 			update_class_area(c1, next, current);
 			update_class_area(c2, next, current);
 		}
+		assert(tot.nservice <= servers);
+		assert((tot.nqueue == 0 && tot.nservice == 0) || tot.nservice != 0);
+		assert(tot.nservice == c1.nservice + c2.nservice);
+		assert(tot.nqueue == c1.nqueue + c2.nqueue);
 		current = next;	/* advance the clock */
 
 		if (current == arrival) { /* process an arrival */
